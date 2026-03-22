@@ -6,6 +6,7 @@ public class ARSceneController : MonoBehaviour
 {
     [SerializeField] private DialogueManager dialogueManager;
     [SerializeField] private QuestionManager questionManager;
+    [SerializeField] private GameObject startMissionButton;
 
     private List<MissionPhase> missionPhases;
     private int currentPhaseIndex = 0;
@@ -17,6 +18,7 @@ public class ARSceneController : MonoBehaviour
 
     public void StartMission()
     {
+        startMissionButton.SetActive(false);
         currentPhaseIndex = 0;
         RunCurrentPhase();
     }
