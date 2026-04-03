@@ -9,6 +9,7 @@ public class PlayerData
 {
     public string playerName;
     public int mission1Score = -1; // -1 = missão não jogada ainda
+    public int maxCombo = 0;
 }
 
 [System.Serializable]
@@ -27,7 +28,6 @@ public class LoginManager : MonoBehaviour
 
     private void Start()
     {
-        // Define o caminho do arquivo JSON no dispositivo
         savePath = Path.Combine(Application.persistentDataPath, "players.json");
         LoadDatabase();
     }
@@ -47,13 +47,22 @@ public class LoginManager : MonoBehaviour
 
     public void SaveDatabase()
     {
-        string json = JsonUtility.ToJson(database, true);
-        File.WriteAllText(savePath, json);
+        try
+        {
+            string json = JsonUtility.ToJson(database, true);
+            File.WriteAllText(savePath, json);
+            Debug.Log("Database salvo em: " + savePath);
+            Debug.Log("Conteudo: " + json);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao salvar database: " + e.Message);
+        }
     }
 
     public void OnLoginButtonClicked()
     {
-        string input = emailInputField.text.Trim();
+        string input = emailInputField.text != null ? emailInputField.text.Trim() : "";
 
         if (string.IsNullOrEmpty(input))
         {
@@ -62,7 +71,11 @@ public class LoginManager : MonoBehaviour
             return;
         }
 
-        // Verifica se o aluno já existe no banco, senão cria
+        feedbackText.gameObject.SetActive(false);
+
+        PlayerPrefs.SetString("CurrentPlayer", input);
+        PlayerPrefs.Save();
+
         PlayerData player = database.players.Find(p => p.playerName == input);
         if (player == null)
         {
@@ -71,10 +84,11 @@ public class LoginManager : MonoBehaviour
             SaveDatabase();
         }
 
-        // Salva o nome do aluno atual no PlayerPrefs para uso durante a sessão
-        PlayerPrefs.SetString("CurrentPlayer", input);
-        PlayerPrefs.Save();
+        SceneManager.LoadScene(1);
+    }
 
-        SceneManager.LoadScene("MissionsScene");
+    public void OnProfessorButtonClicked()
+    {
+        SceneManager.LoadScene("ProfessorLoginScene");
     }
 }

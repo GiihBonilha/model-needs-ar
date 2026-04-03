@@ -7,11 +7,11 @@ public class ScoreManager : MonoBehaviour
 
     private int totalScore = 0;
     private int totalQuestions = 5;
+    private int maxCombo = 0;
     private string savePath;
 
     private void Awake()
     {
-        // Singleton — só existe um ScoreManager na cena
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -24,6 +24,7 @@ public class ScoreManager : MonoBehaviour
     {
         savePath = Path.Combine(Application.persistentDataPath, "players.json");
         totalScore = 0;
+        maxCombo = 0;
     }
 
     public void RegisterAnswer(bool isCorrect)
@@ -32,9 +33,19 @@ public class ScoreManager : MonoBehaviour
             totalScore++;
     }
 
+    public void SetMaxCombo(int combo)
+    {
+        maxCombo = combo;
+    }
+
     public int GetTotalScore()
     {
         return totalScore;
+    }
+
+    public int GetMaxCombo()
+    {
+        return maxCombo;
     }
 
     public void SaveScore()
@@ -51,6 +62,7 @@ public class ScoreManager : MonoBehaviour
         if (player != null)
         {
             player.mission1Score = totalScore;
+            player.maxCombo = maxCombo;
             string updatedJson = JsonUtility.ToJson(database, true);
             File.WriteAllText(savePath, updatedJson);
         }

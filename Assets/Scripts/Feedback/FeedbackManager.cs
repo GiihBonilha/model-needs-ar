@@ -7,14 +7,24 @@ public class FeedbackManager : MonoBehaviour
 {
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text feedbackText;
+    [SerializeField] private TMP_Text comboText;
 
     private void Start()
     {
         string currentPlayer = PlayerPrefs.GetString("CurrentPlayer", "");
         int score = GetPlayerScore(currentPlayer);
+        int combo = GetPlayerCombo(currentPlayer);
 
         scoreText.text = score + " / 5";
         feedbackText.text = GetFeedbackText(score);
+
+        if (comboText != null)
+        {
+            if (combo >= 2)
+                comboText.text = "Maior combo: 🔥" + combo;
+            else
+                comboText.text = "";
+        }
     }
 
     private int GetPlayerScore(string playerName)
@@ -27,6 +37,18 @@ public class FeedbackManager : MonoBehaviour
         PlayerData player = database.players.Find(p => p.playerName == playerName);
 
         return player != null ? player.mission1Score : 0;
+    }
+
+    private int GetPlayerCombo(string playerName)
+    {
+        string savePath = Path.Combine(Application.persistentDataPath, "players.json");
+        if (!File.Exists(savePath)) return 0;
+
+        string json = File.ReadAllText(savePath);
+        PlayerDatabase database = JsonUtility.FromJson<PlayerDatabase>(json);
+        PlayerData player = database.players.Find(p => p.playerName == playerName);
+
+        return player != null ? player.maxCombo : 0;
     }
 
     private string GetFeedbackText(int score)
@@ -45,6 +67,11 @@ public class FeedbackManager : MonoBehaviour
 
     public void OnConcludeButtonClicked()
     {
-        SceneManager.LoadScene("MissionsScene");
+        SceneManager.LoadScene(1);
+    }
+
+    public void OnRankingButtonClicked()
+    {
+        SceneManager.LoadScene("RankingScene");
     }
 }

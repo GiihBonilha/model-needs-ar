@@ -7,6 +7,7 @@ public class ARSceneController : MonoBehaviour
     [SerializeField] private DialogueManager dialogueManager;
     [SerializeField] private QuestionManager questionManager;
     [SerializeField] private GameObject startMissionButton;
+    [SerializeField] private ComboManager comboManager;
 
     private List<MissionPhase> missionPhases;
     private int currentPhaseIndex = 0;
@@ -56,6 +57,15 @@ public class ARSceneController : MonoBehaviour
     private void OnAnswerSelected(AnswerOption answer)
     {
         bool isCorrect = (answer.result == AnswerResult.Correct);
+
+        ScoreManager.Instance.RegisterAnswer(isCorrect);
+
+        if (isCorrect)
+            comboManager.RegisterCorrect();
+        else
+            comboManager.RegisterWrong();
+
+        Debug.Log("isCorrect: " + isCorrect);
         dialogueManager.PlayBotReaction(isCorrect);
         dialogueManager.ShowFeedback(answer.consequenceText, answer.explanationText, AdvancePhase);
     }
@@ -68,6 +78,7 @@ public class ARSceneController : MonoBehaviour
 
     private void EndMission()
     {
+        ScoreManager.Instance.SetMaxCombo(comboManager.MaxCombo);
         ScoreManager.Instance.SaveScore();
         SceneManager.LoadScene("ResultScene");
     }
@@ -85,22 +96,32 @@ public class ARSceneController : MonoBehaviour
             }
         });
 
-        // INTRODUÇÃO DA CLIENTE
+        // INTRODUÇÃO DA CLIENTE — dividida em partes
         missionPhases.Add(new MissionPhase
         {
             dialogues = new List<DialogueLine>
             {
                 new DialogueLine { character = CharacterType.Cliente, text = "O sistema que queremos desenvolver foi pensado para ajudar pessoas a planejarem suas refeições de forma mais saudável, econômica e sustentável, considerando a realidade de cada uma no dia a dia." },
-                new DialogueLine { character = CharacterType.Cliente, text = "Queremos que o usuário receba recomendações que façam sentido para o seu contexto, ajudando a montar refeições mais adequadas, aproveitar melhor os ingredientes disponíveis e manter uma rotina alimentar mais equilibrada." }
+                new DialogueLine { character = CharacterType.Cliente, text = "A proposta é que ele leve em conta fatores como os alimentos que a pessoa já tem em casa, suas restrições alimentares, seu orçamento, seu tempo disponível para cozinhar e também seus objetivos pessoais com a alimentação." },
+                new DialogueLine { character = CharacterType.Cliente, text = "Organizar refeições parece simples, mas na prática envolve muitas decisões ao mesmo tempo. Quando tudo isso não é bem organizado, é comum haver desperdício de alimentos, gastos desnecessários e até frustração na hora de decidir o que comer." },
+                new DialogueLine { character = CharacterType.Cliente, text = "Por isso, a intenção desse sistema não é apenas sugerir receitas de forma genérica. Queremos que o usuário receba recomendações que façam sentido para o seu contexto, ajudando a montar refeições mais adequadas e manter uma rotina alimentar mais equilibrada." },
+                new DialogueLine { character = CharacterType.Cliente, text = "O sistema deve permitir que o usuário informe o que tem em casa, suas restrições alimentares, quanto costuma gastar por refeição, quanto tempo tem para cozinhar e qual é o seu objetivo — como praticidade ou alimentação equilibrada." },
+                new DialogueLine { character = CharacterType.Cliente, text = "Também esperamos que ele acompanhe as mudanças no contexto do usuário. Se a pessoa mudar preferências ou passar a escolher com mais frequência determinado tipo de refeição, o sistema deve refletir isso nas recomendações." },
+                new DialogueLine { character = CharacterType.Cliente, text = "O usuário precisa perceber que o sistema está considerando suas informações de verdade. Isso é essencial para gerar confiança, principalmente porque essas recomendações afetam decisões reais do cotidiano." },
+                new DialogueLine { character = CharacterType.Cliente, text = "A proposta não é substituir a decisão humana. O sistema deve funcionar como um assistente inteligente, ajudando a organizar possibilidades e facilitando escolhas, mas mantendo o usuário no centro da decisão." }
             }
         });
 
-        // INTRODUÇÃO DO GERENTE
+        // INTRODUÇÃO DO GERENTE — dividida em partes
         missionPhases.Add(new MissionPhase
         {
             dialogues = new List<DialogueLine>
             {
-                new DialogueLine { character = CharacterType.Gerente, text = "Certo, agora temos uma compreensão mais clara do sistema. Precisamos definir com cuidado como a inteligência artificial vai operar por trás dessas recomendações. Vamos analisar como esse modelo deve ser estruturado." }
+                new DialogueLine { character = CharacterType.Gerente, text = "Certo, agora temos uma compreensão mais clara do sistema que queremos construir, do tipo de apoio que ele deve oferecer ao usuário e do impacto que suas recomendações podem ter no dia a dia." },
+                new DialogueLine { character = CharacterType.Gerente, text = "Sabemos que não estamos falando de um sistema qualquer, mas de uma solução que precisa considerar contexto, preferências, restrições, orçamento, rotina e mudanças ao longo do tempo." },
+                new DialogueLine { character = CharacterType.Gerente, text = "Isso significa que não basta pensar apenas nas funcionalidades visíveis da aplicação. Também precisamos definir com cuidado como a inteligência artificial vai operar por trás dessas recomendações." },
+                new DialogueLine { character = CharacterType.Gerente, text = "Já entendemos o que o sistema precisa fazer e por que isso importa. O próximo passo é decidir como o modelo de IA deve aprender, como deve reagir ao feedback e de que forma suas recomendações vão se ajustar ao contexto de cada pessoa." },
+                new DialogueLine { character = CharacterType.Gerente, text = "A partir de agora, sua tarefa será nos ajudar a elicitar essas decisões. Vamos analisar como esse modelo deve ser estruturado para que o sistema consiga cumprir seu propósito da melhor forma possível." }
             }
         });
 
@@ -297,7 +318,7 @@ public class ARSceneController : MonoBehaviour
         {
             dialogues = new List<DialogueLine>
             {
-                new DialogueLine { character = CharacterType.Bot, text = "Reunião encerrada. Os requisitos do modelo foram definidos. Veja agora seu desempenho." }
+                new DialogueLine { character = CharacterType.Bot, text = "Missão concluída. Os requisitos do modelo foram definidos. Agora vamos analisar seu desempenho nas decisões sobre os requisitos do modelo de IA." }
             }
         });
     }

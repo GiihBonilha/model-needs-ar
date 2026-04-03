@@ -8,6 +8,9 @@ public class MissionsManager : MonoBehaviour
     [SerializeField] private TMP_Text playerNameText;
     [SerializeField] private GameObject mission1CompletedBadge;
 
+    [Header("Popup de Confirmação")]
+    [SerializeField] private GameObject popupConfirmacao;
+
     private string savePath;
 
     private void Start()
@@ -18,6 +21,10 @@ public class MissionsManager : MonoBehaviour
         string currentPlayer = PlayerPrefs.GetString("CurrentPlayer", "");
         if (playerNameText != null)
             playerNameText.text = "Olá, " + currentPlayer + "!";
+
+        // Garante que o popup começa desativado
+        if (popupConfirmacao != null)
+            popupConfirmacao.SetActive(false);
 
         // Verifica se a Missão 1 já foi concluída por esse aluno
         CheckMission1Status(currentPlayer);
@@ -43,4 +50,30 @@ public class MissionsManager : MonoBehaviour
     {
         SceneManager.LoadScene("BriefingScene");
     }
+    public void OnRankingButtonClicked()
+    {
+        SceneManager.LoadScene("RankingScene");
+    }
+
+    // Chamado pelo botão Sair — abre o popup
+    public void OnSairButtonClicked()
+    {
+        if (popupConfirmacao != null)
+            popupConfirmacao.SetActive(true);
+    }
+
+    // Chamado pelo botão Sim no popup — volta para a LoginScene
+    public void OnConfirmarSairClicked()
+    {
+        PlayerPrefs.DeleteKey("CurrentPlayer");
+        SceneManager.LoadScene("LoginScene");
+    }
+
+    // Chamado pelo botão Não no popup — fecha o popup
+    public void OnCancelarSairClicked()
+    {
+        if (popupConfirmacao != null)
+            popupConfirmacao.SetActive(false);
+    }
+
 }

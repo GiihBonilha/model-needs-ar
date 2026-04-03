@@ -99,10 +99,13 @@ public class DialogueManager : MonoBehaviour
 
     public void PlayBotReaction(bool isCorrect)
     {
-        if (isCorrect)
-            botAnimator.SetTrigger("PlayPositive");
-        else
-            botAnimator.SetTrigger("PlayNegative");
+    botAnimator.ResetTrigger("PlayPositive");
+    botAnimator.ResetTrigger("PlayNegative");
+    
+    if (isCorrect)
+        botAnimator.SetTrigger("PlayPositive");
+    else
+        botAnimator.SetTrigger("PlayNegative");
     }
 
     private string GetCharacterName(CharacterType character)
