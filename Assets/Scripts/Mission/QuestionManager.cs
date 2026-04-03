@@ -21,12 +21,11 @@ public class QuestionManager : MonoBehaviour
 
         questionText.text = question.questionText;
 
-        // Configura cada botão de resposta
         for (int i = 0; i < answerButtons.Count; i++)
         {
             if (i < question.answers.Count)
             {
-                int index = i; // captura o índice para o lambda
+                int index = i;
                 answerTexts[i].text = question.answers[i].text;
                 answerButtons[i].gameObject.SetActive(true);
                 answerButtons[i].onClick.RemoveAllListeners();
@@ -47,7 +46,8 @@ public class QuestionManager : MonoBehaviour
         AnswerOption selected = currentQuestion.answers[index];
         bool isCorrect = (index == currentQuestion.correctAnswerIndex);
 
-        ScoreManager.Instance.RegisterAnswer(isCorrect);
+        // Passa o índice escolhido para o ScoreManager
+        ScoreManager.Instance.RegisterAnswer(isCorrect, index);
         onAnswerSelected?.Invoke(selected);
     }
 }

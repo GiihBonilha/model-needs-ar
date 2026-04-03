@@ -58,7 +58,6 @@ public class ARSceneController : MonoBehaviour
     {
         bool isCorrect = (answer.result == AnswerResult.Correct);
 
-        ScoreManager.Instance.RegisterAnswer(isCorrect);
 
         if (isCorrect)
             comboManager.RegisterCorrect();

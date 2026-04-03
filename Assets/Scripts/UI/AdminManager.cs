@@ -20,11 +20,24 @@ public class AdminManager : MonoBehaviour
     [SerializeField] private GameObject alunoItemPrefab;
 
     [Header("Gráfico")]
-    [SerializeField] private RectTransform[] barrasGrafico; // 5 barras M1-M5
-    [SerializeField] private TMP_Text[] labelsGrafico;      // textos embaixo das barras
+    [SerializeField] private RectTransform[] barrasAcerto;
+    [SerializeField] private RectTransform[] barrasErro;
+    [SerializeField] private TMP_Text[] labelsPercentualAcerto;
+    [SerializeField] private TMP_Text[] labelsPercentualErro;
+    [SerializeField] private TMP_Text totalCadastradosText;
+    [SerializeField] private TMP_Text totalCompletaramText;
+
+    [Header("Turmas")]
+    [SerializeField] private TMP_InputField novaTurmaInput;
+    [SerializeField] private Transform turmasContainer;
+    [SerializeField] private GameObject turmaItemPrefab;
+    [SerializeField] private Transform rankingTurmaContainer;
+    [SerializeField] private GameObject rankingTurmaItemPrefab;
+    [SerializeField] private TMP_Text turmaAtualText;
 
     private string savePath;
     private PlayerDatabase database;
+    private string turmaSelecionada = "";
 
     private void Start()
     {
@@ -45,6 +58,15 @@ public class AdminManager : MonoBehaviour
         {
             database = new PlayerDatabase();
         }
+
+        if (database.turmas == null)
+            database.turmas = new List<string>();
+    }
+
+    private void SaveDatabase()
+    {
+        string json = JsonUtility.ToJson(database, true);
+        File.WriteAllText(savePath, json);
     }
 
     private void MostrarResumo()
@@ -69,7 +91,6 @@ public class AdminManager : MonoBehaviour
         painelGrafico.SetActive(false);
         painelTurmas.SetActive(false);
 
-        // Limpa lista anterior
         foreach (Transform filho in alunosContainer)
             Destroy(filho.gameObject);
 
@@ -83,7 +104,6 @@ public class AdminManager : MonoBehaviour
             item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
             item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
 
-            // Botão de reset
             string nome = jogador.playerName;
             item.transform.Find("BotaoReset").GetComponent<Button>().onClick.AddListener(() =>
             {
@@ -98,18 +118,48 @@ public class AdminManager : MonoBehaviour
         painelGrafico.SetActive(true);
         painelTurmas.SetActive(false);
 
-        string[] perguntas = { "M1", "M2", "M3", "M4", "M5" };
         List<PlayerData> jogadores = database.players.FindAll(p => p.mission1Score >= 0);
-        int total = jogadores.Count;
+        int totalCompletaram = jogadores.Count;
+        int totalCadastrados = database.players.Count;
 
-        // Por enquanto mostra a pontuação média como aproximação
-        // (para dados exatos por pergunta precisaríamos salvar respostas individuais)
-        for (int i = 0; i < barrasGrafico.Length; i++)
+        if (totalCadastradosText != null)
+            totalCadastradosText.text = "Total cadastrados: " + totalCadastrados;
+
+        if (totalCompletaramText != null)
+            totalCompletaramText.text = "Completaram a missão: " + totalCompletaram;
+
+        if (totalCompletaram == 0) return;
+
+        int[] acertos = new int[5];
+
+        foreach (PlayerData jogador in jogadores)
         {
-            float percentual = total > 0 ? (float)i / perguntas.Length : 0;
-            barrasGrafico[i].sizeDelta = new Vector2(barrasGrafico[i].sizeDelta.x, 600 * percentual);
-            if (labelsGrafico != null && i < labelsGrafico.Length)
-                labelsGrafico[i].text = perguntas[i];
+            if (jogador.mission1Answers == null) continue;
+            for (int i = 0; i < jogador.mission1Answers.Count && i < 5; i++)
+            {
+                if (jogador.mission1Answers[i])
+                    acertos[i]++;
+            }
+        }
+
+        float alturaMaxima = 600f;
+
+        for (int i = 0; i < 5; i++)
+        {
+            float percentAcerto = (float)acertos[i] / totalCompletaram;
+            float percentErro = 1f - percentAcerto;
+
+            if (barrasAcerto != null && i < barrasAcerto.Length)
+                barrasAcerto[i].sizeDelta = new Vector2(barrasAcerto[i].sizeDelta.x, alturaMaxima * percentAcerto);
+
+            if (barrasErro != null && i < barrasErro.Length)
+                barrasErro[i].sizeDelta = new Vector2(barrasErro[i].sizeDelta.x, alturaMaxima * percentErro);
+
+            if (labelsPercentualAcerto != null && i < labelsPercentualAcerto.Length)
+                labelsPercentualAcerto[i].text = Mathf.RoundToInt(percentAcerto * 100) + "%";
+
+            if (labelsPercentualErro != null && i < labelsPercentualErro.Length)
+                labelsPercentualErro[i].text = Mathf.RoundToInt(percentErro * 100) + "%";
         }
     }
 
@@ -118,6 +168,95 @@ public class AdminManager : MonoBehaviour
         painelAlunos.SetActive(false);
         painelGrafico.SetActive(false);
         painelTurmas.SetActive(true);
+
+        AtualizarListaTurmas();
+    }
+
+    private void AtualizarListaTurmas()
+    {
+        foreach (Transform filho in turmasContainer)
+            Destroy(filho.gameObject);
+
+        foreach (string turma in database.turmas)
+        {
+            GameObject item = Instantiate(turmaItemPrefab, turmasContainer);
+            item.transform.Find("NomeTurmaText").GetComponent<TMP_Text>().text = turma;
+
+            string nomeTurma = turma;
+            item.transform.Find("BotaoVerRanking").GetComponent<Button>().onClick.AddListener(() =>
+            {
+                MostrarRankingTurma(nomeTurma);
+            });
+
+            item.transform.Find("BotaoDeletarTurma").GetComponent<Button>().onClick.AddListener(() =>
+            {
+                DeletarTurma(nomeTurma);
+            });
+        }
+    }
+
+    public void OnCriarTurmaClicked()
+    {
+        string nomeTurma = novaTurmaInput.text.Trim();
+        if (string.IsNullOrEmpty(nomeTurma)) return;
+
+        if (database.turmas.Contains(nomeTurma))
+        {
+            Debug.Log("Turma já existe!");
+            return;
+        }
+
+        database.turmas.Add(nomeTurma);
+        SaveDatabase();
+        novaTurmaInput.text = "";
+        AtualizarListaTurmas();
+    }
+
+    private void DeletarTurma(string nomeTurma)
+    {
+        database.turmas.Remove(nomeTurma);
+        SaveDatabase();
+        AtualizarListaTurmas();
+
+        if (turmaAtualText != null && turmaSelecionada == nomeTurma)
+        {
+            turmaSelecionada = "";
+            turmaAtualText.text = "";
+
+            foreach (Transform filho in rankingTurmaContainer)
+                Destroy(filho.gameObject);
+        }
+    }
+
+    private void MostrarRankingTurma(string nomeTurma)
+    {
+        turmaSelecionada = nomeTurma;
+
+        if (turmaAtualText != null)
+            turmaAtualText.text = "Ranking: " + nomeTurma;
+
+        foreach (Transform filho in rankingTurmaContainer)
+            Destroy(filho.gameObject);
+
+        List<PlayerData> jogadores = database.players.FindAll(p => p.turma == nomeTurma && p.mission1Score >= 0);
+        jogadores.Sort((a, b) =>
+        {
+            if (b.mission1Score != a.mission1Score)
+                return b.mission1Score.CompareTo(a.mission1Score);
+            return b.maxCombo.CompareTo(a.maxCombo);
+        });
+
+        for (int i = 0; i < jogadores.Count; i++)
+        {
+            PlayerData jogador = jogadores[i];
+            GameObject item = Instantiate(rankingTurmaItemPrefab, rankingTurmaContainer);
+
+            string posicao = i == 0 ? "1o" : i == 1 ? "2o" : i == 2 ? "3o" : (i + 1) + "o";
+            item.transform.Find("PosicaoText").GetComponent<TMP_Text>().text = posicao;
+            item.transform.Find("NomeText").GetComponent<TMP_Text>().text = jogador.playerName;
+            item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
+            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
+        }
     }
 
     private void ResetarAluno(string playerName)
@@ -127,9 +266,10 @@ public class AdminManager : MonoBehaviour
         {
             player.mission1Score = -1;
             player.maxCombo = 0;
-            string json = JsonUtility.ToJson(database, true);
-            File.WriteAllText(savePath, json);
-            MostrarPainelAlunos(); // Atualiza a lista
+            player.mission1Answers = new List<bool>();
+            player.mission1ChosenAnswers = new List<int>();
+            SaveDatabase();
+            MostrarPainelAlunos();
         }
     }
 

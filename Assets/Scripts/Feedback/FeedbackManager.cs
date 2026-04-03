@@ -74,4 +74,9 @@ public class FeedbackManager : MonoBehaviour
     {
         SceneManager.LoadScene("RankingScene");
     }
+
+    public void OnRevisaoButtonClicked()
+    {
+        SceneManager.LoadScene("RevisaoScene");
+    }
 }

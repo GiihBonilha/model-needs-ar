@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.IO;
+using System.Collections.Generic;
 
 public class ScoreManager : MonoBehaviour
 {
@@ -8,6 +9,8 @@ public class ScoreManager : MonoBehaviour
     private int totalScore = 0;
     private int totalQuestions = 5;
     private int maxCombo = 0;
+    private List<bool> answers = new List<bool>();
+    private List<int> chosenAnswers = new List<int>();
     private string savePath;
 
     private void Awake()
@@ -25,12 +28,16 @@ public class ScoreManager : MonoBehaviour
         savePath = Path.Combine(Application.persistentDataPath, "players.json");
         totalScore = 0;
         maxCombo = 0;
+        answers = new List<bool>();
+        chosenAnswers = new List<int>();
     }
 
-    public void RegisterAnswer(bool isCorrect)
+    public void RegisterAnswer(bool isCorrect, int chosenIndex)
     {
         if (isCorrect)
             totalScore++;
+        answers.Add(isCorrect);
+        chosenAnswers.Add(chosenIndex);
     }
 
     public void SetMaxCombo(int combo)
@@ -63,6 +70,8 @@ public class ScoreManager : MonoBehaviour
         {
             player.mission1Score = totalScore;
             player.maxCombo = maxCombo;
+            player.mission1Answers = new List<bool>(answers);
+            player.mission1ChosenAnswers = new List<int>(chosenAnswers);
             string updatedJson = JsonUtility.ToJson(database, true);
             File.WriteAllText(savePath, updatedJson);
         }

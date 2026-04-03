@@ -3,25 +3,31 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using System.IO;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 [System.Serializable]
 public class PlayerData
 {
     public string playerName;
-    public int mission1Score = -1; // -1 = missão não jogada ainda
+    public string turma;
+    public int mission1Score = -1;
     public int maxCombo = 0;
+    public List<bool> mission1Answers = new List<bool>();
+    public List<int> mission1ChosenAnswers = new List<int>();
 }
 
 [System.Serializable]
 public class PlayerDatabase
 {
     public List<PlayerData> players = new List<PlayerData>();
+    public List<string> turmas = new List<string>();
 }
 
 public class LoginManager : MonoBehaviour
 {
     [SerializeField] private TMP_InputField emailInputField;
     [SerializeField] private TMP_Text feedbackText;
+    [SerializeField] private TMP_Dropdown turmaDropdown;
 
     private string savePath;
     private PlayerDatabase database;
@@ -30,6 +36,7 @@ public class LoginManager : MonoBehaviour
     {
         savePath = Path.Combine(Application.persistentDataPath, "players.json");
         LoadDatabase();
+        CarregarTurmasNoDropdown();
     }
 
     private void LoadDatabase()
@@ -43,6 +50,21 @@ public class LoginManager : MonoBehaviour
         {
             database = new PlayerDatabase();
         }
+    }
+
+    private void CarregarTurmasNoDropdown()
+    {
+        turmaDropdown.ClearOptions();
+
+        if (database.turmas == null || database.turmas.Count == 0)
+        {
+            turmaDropdown.AddOptions(new List<string> { "Nenhuma turma cadastrada" });
+            turmaDropdown.interactable = false;
+            return;
+        }
+
+        turmaDropdown.interactable = true;
+        turmaDropdown.AddOptions(new List<string>(database.turmas));
     }
 
     public void SaveDatabase()
@@ -71,15 +93,25 @@ public class LoginManager : MonoBehaviour
             return;
         }
 
+        if (database.turmas == null || database.turmas.Count == 0)
+        {
+            feedbackText.text = "Nenhuma turma cadastrada. Peça ao professor para criar uma turma.";
+            feedbackText.gameObject.SetActive(true);
+            return;
+        }
+
         feedbackText.gameObject.SetActive(false);
 
+        string turmaSelecionada = database.turmas[turmaDropdown.value];
+
         PlayerPrefs.SetString("CurrentPlayer", input);
+        PlayerPrefs.SetString("CurrentTurma", turmaSelecionada);
         PlayerPrefs.Save();
 
-        PlayerData player = database.players.Find(p => p.playerName == input);
+        PlayerData player = database.players.Find(p => p.playerName == input && p.turma == turmaSelecionada);
         if (player == null)
         {
-            player = new PlayerData { playerName = input };
+            player = new PlayerData { playerName = input, turma = turmaSelecionada };
             database.players.Add(player);
             SaveDatabase();
         }

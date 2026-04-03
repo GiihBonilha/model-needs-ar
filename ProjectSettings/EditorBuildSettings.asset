@@ -29,6 +29,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ProfessorLoginScene.unity
     guid: b795c773c37b052df9dc7d0480b6ac7c
+  - enabled: 1
+    path: Assets/Scenes/RevisaoScene.unity
+    guid: 6cdad0d63c148ccf3ac380907608eba7
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: 9d8cb4dd6fd909fa99339b6faa502992, type: 2}
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: ade32b7a01840ac878a25e8737f5f91c, type: 2}
