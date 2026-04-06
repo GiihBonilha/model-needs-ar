@@ -10,6 +10,6 @@ public class BriefingManager : MonoBehaviour
 
     public void OnVoltarButtonClicked()
     {
-        SceneManager.LoadScene("MissionsScene");
+        SceneManager.LoadScene("MissionScene");
     }
 }

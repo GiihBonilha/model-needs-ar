@@ -20,9 +20,9 @@ public class RankingManager : MonoBehaviour
 
     public void OnVoltarButtonClicked()
     {
-        SceneManager.LoadScene("MissionsScene");
+        SceneManager.LoadScene("MissionScene");
     }
-    
+
     private void LoadRanking()
     {
         if (!File.Exists(savePath)) return;
