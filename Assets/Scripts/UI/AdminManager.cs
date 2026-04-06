@@ -110,6 +110,9 @@ public class AdminManager : MonoBehaviour
                 ResetarAluno(nome);
             });
         }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(alunosContainer.GetComponent<RectTransform>());
     }
 
     public void MostrarPainelGrafico()
@@ -142,7 +145,8 @@ public class AdminManager : MonoBehaviour
             }
         }
 
-        float alturaMaxima = 600f;
+        RectTransform painelRect = painelGrafico.GetComponent<RectTransform>();
+        float alturaMaxima = painelRect.rect.height * 0.55f; // 55% da altura do painel para as barras
 
         for (int i = 0; i < 5; i++)
         {
@@ -193,6 +197,9 @@ public class AdminManager : MonoBehaviour
                 DeletarTurma(nomeTurma);
             });
         }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(turmasContainer.GetComponent<RectTransform>());
     }
 
     public void OnCriarTurmaClicked()
@@ -257,6 +264,9 @@ public class AdminManager : MonoBehaviour
             item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
             item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
         }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rankingTurmaContainer.GetComponent<RectTransform>());
     }
 
     private void ResetarAluno(string playerName)

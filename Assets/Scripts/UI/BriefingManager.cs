@@ -7,4 +7,9 @@ public class BriefingManager : MonoBehaviour
     {
         SceneManager.LoadScene("ARScene");
     }
+
+    public void OnVoltarButtonClicked()
+    {
+        SceneManager.LoadScene("MissionsScene");
+    }
 }

@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using System.IO;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class RankingManager : MonoBehaviour
 {
@@ -17,6 +18,11 @@ public class RankingManager : MonoBehaviour
         LoadRanking();
     }
 
+    public void OnVoltarButtonClicked()
+    {
+        SceneManager.LoadScene("MissionsScene");
+    }
+    
     private void LoadRanking()
     {
         if (!File.Exists(savePath)) return;
@@ -46,6 +52,9 @@ public class RankingManager : MonoBehaviour
             item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
             item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
         }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rankingContainer.GetComponent<RectTransform>());
     }
 
     private string GetMedal(int posicao)
@@ -59,8 +68,4 @@ public class RankingManager : MonoBehaviour
         }
     }
 
-    public void OnVoltarButtonClicked()
-    {
-        SceneManager.LoadScene("MissionsScene");
-    }
 }

@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using System.IO;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class RevisaoManager : MonoBehaviour
 {
@@ -95,6 +96,9 @@ public class RevisaoManager : MonoBehaviour
                 respostaCorretaText.color = new Color(0.298f, 0.686f, 0.314f);
             }
         }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(revisaoContainer.GetComponent<RectTransform>());
     }
 
     public void OnVoltarButtonClicked()
