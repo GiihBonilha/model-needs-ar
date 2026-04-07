@@ -36,21 +36,21 @@ public class ARImageController : MonoBehaviour
         }
     }
 
-    void PlaceScene(ARTrackedImage trackedImage)
+void PlaceScene(ARTrackedImage trackedImage)
 {
     if (scenePlaced) return;
     scenePlaced = true;
 
-    // Desparentar do XR Origin e colocar na raiz da cena
-    arSceneRoot.transform.SetParent(null);
-    
-    arSceneRoot.SetActive(true);
-    arSceneRoot.transform.position = trackedImage.transform.position;
-    arSceneRoot.transform.rotation = trackedImage.transform.rotation;
+    // Converte posição do marcador para espaço do mundo
+    Vector3 worldPosition = trackedImage.transform.TransformPoint(Vector3.zero);
+    Quaternion worldRotation = trackedImage.transform.rotation;
 
-    // Desativa o rastreamento da imagem para liberar processamento
+    arSceneRoot.transform.position = worldPosition;
+    arSceneRoot.transform.rotation = worldRotation;
+    arSceneRoot.SetActive(true);
+
     trackedImageManager.enabled = false;
 
-    Debug.Log("Cena fixada no mundo real: " + arSceneRoot.transform.position);
+    Debug.Log("Cena fixada: " + worldPosition);
 }
 }
