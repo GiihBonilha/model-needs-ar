@@ -37,11 +37,11 @@ public class ComboManager : MonoBehaviour
     {
         switch (combo)
         {
-            case 2: return "Boa! 👏";
-            case 3: return "Em chamas! 🔥";
-            case 4: return "Imparável! 🚀";
-            case 5: return "Perfeito! ⭐";
-            default: return "Incrível! ⭐";
+            case 2: return "Boa! " + "<sprite name=\"clapping\">";
+            case 3: return "Em chamas! "+"<sprite name=\"fire\">";
+            case 4: return "Imparável! "+"<sprite name=\"rocket\">";
+            case 5: return "Perfeito! " + "<sprite name=\"star\">";
+            default: return "Incrível! " + "<sprite name=\"stars\">";
         }
     }
 

@@ -21,7 +21,7 @@ public class FeedbackManager : MonoBehaviour
         if (comboText != null)
         {
             if (combo >= 2)
-                comboText.text = "Maior combo: 🔥" + combo;
+                comboText.text = "Maior combo: "+ "<sprite name=\"fire\">" + combo;
             else
                 comboText.text = "";
         }
