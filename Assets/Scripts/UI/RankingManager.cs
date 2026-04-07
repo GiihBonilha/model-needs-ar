@@ -50,7 +50,7 @@ public class RankingManager : MonoBehaviour
             item.transform.Find("PosicaoText").GetComponent<TMP_Text>().text = GetMedal(i + 1);
             item.transform.Find("NomeText").GetComponent<TMP_Text>().text = jogador.playerName;
             item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
-            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
+            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "<sprite name=\"fire\"> " + jogador.maxCombo;
         }
 
         Canvas.ForceUpdateCanvases();
@@ -61,9 +61,9 @@ public class RankingManager : MonoBehaviour
     {
         switch (posicao)
         {
-            case 1: return "🥇";
-            case 2: return "🥈";
-            case 3: return "🥉";
+            case 1: return "<sprite name=\"first\">"; 
+            case 2: return "<sprite name=\"second\">"; 
+            case 3: return "<sprite name=\"third\">";
             default: return posicao + "º";
         }
     }
