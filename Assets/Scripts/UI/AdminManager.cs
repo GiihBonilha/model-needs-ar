@@ -102,7 +102,7 @@ public class AdminManager : MonoBehaviour
             GameObject item = Instantiate(alunoItemPrefab, alunosContainer);
             item.transform.Find("NomeText").GetComponent<TMP_Text>().text = jogador.playerName;
             item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
-            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
+            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "<sprite name=\"fire\"> " + jogador.maxCombo;
 
             string nome = jogador.playerName;
             item.transform.Find("BotaoReset").GetComponent<Button>().onClick.AddListener(() =>
@@ -258,11 +258,11 @@ public class AdminManager : MonoBehaviour
             PlayerData jogador = jogadores[i];
             GameObject item = Instantiate(rankingTurmaItemPrefab, rankingTurmaContainer);
 
-            string posicao = i == 0 ? "1o" : i == 1 ? "2o" : i == 2 ? "3o" : (i + 1) + "o";
+            string posicao = i == 0 ? "1°" : i == 1 ? "2°" : i == 2 ? "3°" : (i + 1) + "°";
             item.transform.Find("PosicaoText").GetComponent<TMP_Text>().text = posicao;
             item.transform.Find("NomeText").GetComponent<TMP_Text>().text = jogador.playerName;
             item.transform.Find("PontuacaoText").GetComponent<TMP_Text>().text = jogador.mission1Score + "/5";
-            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "🔥" + jogador.maxCombo;
+            item.transform.Find("ComboText").GetComponent<TMP_Text>().text = "<sprite name=\"fire\"> " + jogador.maxCombo;
         }
 
         Canvas.ForceUpdateCanvases();
