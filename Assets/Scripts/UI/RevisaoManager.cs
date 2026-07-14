@@ -1,16 +1,15 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using System.IO;
 using System.Collections.Generic;
+using Firebase.Firestore;
+using System.Threading.Tasks;
 using UnityEngine.UI;
 
 public class RevisaoManager : MonoBehaviour
 {
     [SerializeField] private Transform revisaoContainer;
     [SerializeField] private GameObject revisaoItemPrefab;
-
-    private string savePath;
 
     private string[] perguntas = {
         "O treinamento do modelo será:",
@@ -36,73 +35,87 @@ public class RevisaoManager : MonoBehaviour
         new string[] { "A) Nenhum impacto nas recomendações", "B) Impacto apenas após a próxima atualização", "C) Atualização imediata das recomendações" }
     };
 
-    private void Start()
+    private async void Start()
     {
-        savePath = Path.Combine(Application.persistentDataPath, "players.json");
-        CarregarRevisao();
+        while (!FirebaseManager.IsReady)
+            await Task.Delay(100);
+
+        await CarregarRevisao();
     }
 
-    private void CarregarRevisao()
+    private async Task CarregarRevisao()
     {
         string currentPlayer = PlayerPrefs.GetString("CurrentPlayer", "");
         if (string.IsNullOrEmpty(currentPlayer)) return;
 
-        if (!File.Exists(savePath)) return;
-
-        string json = File.ReadAllText(savePath);
-        PlayerDatabase database = JsonUtility.FromJson<PlayerDatabase>(json);
-        PlayerData player = database.players.Find(p => p.playerName == currentPlayer);
-
-        if (player == null || player.mission1Answers == null) return;
-
-        for (int i = 0; i < perguntas.Length; i++)
+        try
         {
-            bool acertou = i < player.mission1Answers.Count && player.mission1Answers[i];
+            DocumentSnapshot snapshot = await FirebaseManager.Db
+                .Collection("players")
+                .Document(currentPlayer)
+                .GetSnapshotAsync();
 
-            GameObject item = Instantiate(revisaoItemPrefab, revisaoContainer);
+            if (!snapshot.Exists) return;
 
-            TMP_Text statusText = item.transform.Find("StatusText").GetComponent<TMP_Text>();
-            TMP_Text perguntaText = item.transform.Find("PerguntaText").GetComponent<TMP_Text>();
-            TMP_Text respostaAlunoText = item.transform.Find("RespostaAlunoText").GetComponent<TMP_Text>();
-            TMP_Text respostaCorretaText = item.transform.Find("RespostaCorretaText").GetComponent<TMP_Text>();
+            List<bool> mission1Answers = snapshot.ContainsField("mission1Answers")
+                ? new List<bool>(snapshot.GetValue<List<bool>>("mission1Answers"))
+                : new List<bool>();
 
-            perguntaText.text = "Pergunta " + (i + 1) + ": " + perguntas[i];
+            List<int> mission1ChosenAnswers = snapshot.ContainsField("mission1ChosenAnswers")
+                ? new List<int>(snapshot.GetValue<List<int>>("mission1ChosenAnswers"))
+                : new List<int>();
 
-            if (acertou)
+            if (mission1Answers.Count == 0) return;
+
+            for (int i = 0; i < perguntas.Length; i++)
             {
-                statusText.text = "[CERTO]";
-                statusText.color = new Color(0.298f, 0.686f, 0.314f);
-                respostaAlunoText.gameObject.SetActive(false);
-                respostaCorretaText.text = respostasCorretas[i];
-                respostaCorretaText.color = new Color(0.298f, 0.686f, 0.314f);
-            }
-            else
-            {
-                statusText.text = "[ERROU]";
-                statusText.color = new Color(0.957f, 0.263f, 0.212f);
+                bool acertou = i < mission1Answers.Count && mission1Answers[i];
 
-                // Mostra a resposta que o aluno escolheu
-                if (player.mission1ChosenAnswers != null && i < player.mission1ChosenAnswers.Count)
+                GameObject item = Instantiate(revisaoItemPrefab, revisaoContainer);
+
+                TMP_Text statusText = item.transform.Find("StatusText").GetComponent<TMP_Text>();
+                TMP_Text perguntaText = item.transform.Find("PerguntaText").GetComponent<TMP_Text>();
+                TMP_Text respostaAlunoText = item.transform.Find("RespostaAlunoText").GetComponent<TMP_Text>();
+                TMP_Text respostaCorretaText = item.transform.Find("RespostaCorretaText").GetComponent<TMP_Text>();
+
+                perguntaText.text = "Pergunta " + (i + 1) + ": " + perguntas[i];
+
+                if (acertou)
                 {
-                    int indiceEscolhido = player.mission1ChosenAnswers[i];
-                    if (indiceEscolhido < todasRespostas[i].Length)
-                    {
-                        respostaAlunoText.text = "Sua resposta: " + todasRespostas[i][indiceEscolhido];
-                        respostaAlunoText.color = new Color(0.957f, 0.263f, 0.212f);
-                    }
+                    statusText.text = "[CERTO]";
+                    statusText.color = new Color(0.298f, 0.686f, 0.314f);
+                    respostaAlunoText.gameObject.SetActive(false);
+                    respostaCorretaText.text = respostasCorretas[i];
+                    respostaCorretaText.color = new Color(0.298f, 0.686f, 0.314f);
                 }
+                else
+                {
+                    statusText.text = "[ERROU]";
+                    statusText.color = new Color(0.957f, 0.263f, 0.212f);
 
-                respostaCorretaText.text = "Resposta correta: " + respostasCorretas[i];
-                respostaCorretaText.color = new Color(0.298f, 0.686f, 0.314f);
+                    if (i < mission1ChosenAnswers.Count)
+                    {
+                        int indiceEscolhido = mission1ChosenAnswers[i];
+                        if (indiceEscolhido < todasRespostas[i].Length)
+                        {
+                            respostaAlunoText.text = "Sua resposta: " + todasRespostas[i][indiceEscolhido];
+                            respostaAlunoText.color = new Color(0.957f, 0.263f, 0.212f);
+                        }
+                    }
+
+                    respostaCorretaText.text = "Resposta correta: " + respostasCorretas[i];
+                    respostaCorretaText.color = new Color(0.298f, 0.686f, 0.314f);
+                }
             }
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(revisaoContainer.GetComponent<RectTransform>());
         }
-
-        Canvas.ForceUpdateCanvases();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(revisaoContainer.GetComponent<RectTransform>());
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao carregar revisão: " + e.Message);
+        }
     }
 
-    public void OnVoltarButtonClicked()
-    {
-        SceneManager.LoadScene("ResultScene");
-    }
+    public void OnVoltarButtonClicked() { SceneManager.LoadScene("ResultScene"); }
 }

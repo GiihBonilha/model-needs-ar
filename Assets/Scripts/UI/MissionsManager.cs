@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using System.IO;
+using Firebase.Firestore;
+using System.Threading.Tasks;
 
 public class MissionsManager : MonoBehaviour
 {
@@ -11,69 +12,46 @@ public class MissionsManager : MonoBehaviour
     [Header("Popup de Confirmação")]
     [SerializeField] private GameObject popupConfirmacao;
 
-    private string savePath;
-
-    private void Start()
+    private async void Start()
     {
-        savePath = Path.Combine(Application.persistentDataPath, "players.json");
+        while (!FirebaseManager.IsReady)
+            await Task.Delay(100);
 
-        // Mostra o nome do aluno logado
         string currentPlayer = PlayerPrefs.GetString("CurrentPlayer", "");
         if (playerNameText != null)
             playerNameText.text = "Olá, " + currentPlayer + "!";
 
-        // Garante que o popup começa desativado
         if (popupConfirmacao != null)
             popupConfirmacao.SetActive(false);
 
-        // Verifica se a Missão 1 já foi concluída por esse aluno
-        CheckMission1Status(currentPlayer);
+        await CheckMission1Status(currentPlayer);
     }
 
-    private void CheckMission1Status(string playerName)
+    private async Task CheckMission1Status(string playerName)
     {
-        if (!File.Exists(savePath)) return;
-
-        string json = File.ReadAllText(savePath);
-        PlayerDatabase database = JsonUtility.FromJson<PlayerDatabase>(json);
-
-        PlayerData player = database.players.Find(p => p.playerName == playerName);
-        if (player != null && player.mission1Score >= 0)
+        try
         {
-            // Missão 1 já foi jogada — mostra o badge de concluída
-            if (mission1CompletedBadge != null)
-                mission1CompletedBadge.SetActive(true);
+            DocumentSnapshot snapshot = await FirebaseManager.Db
+                .Collection("players")
+                .Document(playerName)
+                .GetSnapshotAsync();
+
+            if (snapshot.Exists && snapshot.ContainsField("mission1Score"))
+            {
+                int score = snapshot.GetValue<int>("mission1Score");
+                if (score >= 0 && mission1CompletedBadge != null)
+                    mission1CompletedBadge.SetActive(true);
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao checar missão: " + e.Message);
         }
     }
 
-    public void OnMission1ButtonClicked()
-    {
-        SceneManager.LoadScene("BriefingScene");
-    }
-    public void OnRankingButtonClicked()
-    {
-        SceneManager.LoadScene("RankingScene");
-    }
-
-    // Chamado pelo botão Sair — abre o popup
-    public void OnSairButtonClicked()
-    {
-        if (popupConfirmacao != null)
-            popupConfirmacao.SetActive(true);
-    }
-
-    // Chamado pelo botão Sim no popup — volta para a LoginScene
-    public void OnConfirmarSairClicked()
-    {
-        PlayerPrefs.DeleteKey("CurrentPlayer");
-        SceneManager.LoadScene("LoginScene");
-    }
-
-    // Chamado pelo botão Não no popup — fecha o popup
-    public void OnCancelarSairClicked()
-    {
-        if (popupConfirmacao != null)
-            popupConfirmacao.SetActive(false);
-    }
-
+    public void OnMission1ButtonClicked() { SceneManager.LoadScene("BriefingScene"); }
+    public void OnRankingButtonClicked() { SceneManager.LoadScene("RankingScene"); }
+    public void OnSairButtonClicked() { if (popupConfirmacao != null) popupConfirmacao.SetActive(true); }
+    public void OnConfirmarSairClicked() { PlayerPrefs.DeleteKey("CurrentPlayer"); SceneManager.LoadScene("LoginScene"); }
+    public void OnCancelarSairClicked() { if (popupConfirmacao != null) popupConfirmacao.SetActive(false); }
 }

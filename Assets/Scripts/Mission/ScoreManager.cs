@@ -1,17 +1,15 @@
 using UnityEngine;
-using System.IO;
 using System.Collections.Generic;
+using Firebase.Firestore;
 
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }
 
     private int totalScore = 0;
-    private int totalQuestions = 5;
     private int maxCombo = 0;
     private List<bool> answers = new List<bool>();
     private List<int> chosenAnswers = new List<int>();
-    private string savePath;
 
     private void Awake()
     {
@@ -25,7 +23,6 @@ public class ScoreManager : MonoBehaviour
 
     private void Start()
     {
-        savePath = Path.Combine(Application.persistentDataPath, "players.json");
         totalScore = 0;
         maxCombo = 0;
         answers = new List<bool>();
@@ -34,46 +31,38 @@ public class ScoreManager : MonoBehaviour
 
     public void RegisterAnswer(bool isCorrect, int chosenIndex)
     {
-        if (isCorrect)
-            totalScore++;
+        if (isCorrect) totalScore++;
         answers.Add(isCorrect);
         chosenAnswers.Add(chosenIndex);
     }
 
-    public void SetMaxCombo(int combo)
-    {
-        maxCombo = combo;
-    }
+    public void SetMaxCombo(int combo) { maxCombo = combo; }
+    public int GetTotalScore() { return totalScore; }
+    public int GetMaxCombo() { return maxCombo; }
 
-    public int GetTotalScore()
-    {
-        return totalScore;
-    }
-
-    public int GetMaxCombo()
-    {
-        return maxCombo;
-    }
-
-    public void SaveScore()
+    public async void SaveScore()
     {
         string currentPlayer = PlayerPrefs.GetString("CurrentPlayer", "");
         if (string.IsNullOrEmpty(currentPlayer)) return;
 
-        if (!File.Exists(savePath)) return;
-
-        string json = File.ReadAllText(savePath);
-        PlayerDatabase database = JsonUtility.FromJson<PlayerDatabase>(json);
-
-        PlayerData player = database.players.Find(p => p.playerName == currentPlayer);
-        if (player != null)
+        try
         {
-            player.mission1Score = totalScore;
-            player.maxCombo = maxCombo;
-            player.mission1Answers = new List<bool>(answers);
-            player.mission1ChosenAnswers = new List<int>(chosenAnswers);
-            string updatedJson = JsonUtility.ToJson(database, true);
-            File.WriteAllText(savePath, updatedJson);
+            await FirebaseManager.Db
+                .Collection("players")
+                .Document(currentPlayer)
+                .UpdateAsync(new Dictionary<string, object>
+                {
+                    { "mission1Score", totalScore },
+                    { "maxCombo", maxCombo },
+                    { "mission1Answers", answers },
+                    { "mission1ChosenAnswers", chosenAnswers }
+                });
+
+            Debug.Log("Score salvo no Firestore!");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao salvar score: " + e.Message);
         }
     }
 }
