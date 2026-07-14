@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using System.IO;
 using System.Collections.Generic;
+using Firebase.Firestore;
+using System.Threading.Tasks;
 using UnityEngine.UI;
 
 public class AdminManager : MonoBehaviour
@@ -35,46 +36,64 @@ public class AdminManager : MonoBehaviour
     [SerializeField] private GameObject rankingTurmaItemPrefab;
     [SerializeField] private TMP_Text turmaAtualText;
 
-    private string savePath;
-    private PlayerDatabase database;
+    private List<PlayerData> todosJogadores = new List<PlayerData>();
+    private List<string> todasTurmas = new List<string>();
     private string turmaSelecionada = "";
 
-    private void Start()
+    private async void Start()
     {
-        savePath = Path.Combine(Application.persistentDataPath, "players.json");
-        LoadDatabase();
+        while (!FirebaseManager.IsReady)
+            await Task.Delay(100);
+
+        await CarregarDados();
         MostrarResumo();
         MostrarPainelAlunos();
     }
 
-    private void LoadDatabase()
+    private async Task CarregarDados()
     {
-        if (File.Exists(savePath))
-        {
-            string json = File.ReadAllText(savePath);
-            database = JsonUtility.FromJson<PlayerDatabase>(json);
-        }
-        else
-        {
-            database = new PlayerDatabase();
-        }
+        todosJogadores.Clear();
+        todasTurmas.Clear();
 
-        if (database.turmas == null)
-            database.turmas = new List<string>();
-    }
+        try
+        {
+            QuerySnapshot playersSnapshot = await FirebaseManager.Db
+                .Collection("players")
+                .GetSnapshotAsync();
 
-    private void SaveDatabase()
-    {
-        string json = JsonUtility.ToJson(database, true);
-        File.WriteAllText(savePath, json);
+            foreach (DocumentSnapshot doc in playersSnapshot.Documents)
+            {
+                PlayerData p = new PlayerData
+                {
+                    playerName = doc.ContainsField("playerName") ? doc.GetValue<string>("playerName") : doc.Id,
+                    turma = doc.ContainsField("turma") ? doc.GetValue<string>("turma") : "",
+                    mission1Score = doc.ContainsField("mission1Score") ? doc.GetValue<int>("mission1Score") : -1,
+                    maxCombo = doc.ContainsField("maxCombo") ? doc.GetValue<int>("maxCombo") : 0,
+                    mission1Answers = doc.ContainsField("mission1Answers") ? new List<bool>(doc.GetValue<List<bool>>("mission1Answers")) : new List<bool>(),
+                    mission1ChosenAnswers = doc.ContainsField("mission1ChosenAnswers") ? new List<int>(doc.GetValue<List<int>>("mission1ChosenAnswers")) : new List<int>()
+                };
+                todosJogadores.Add(p);
+            }
+
+            QuerySnapshot turmasSnapshot = await FirebaseManager.Db
+                .Collection("turmas")
+                .GetSnapshotAsync();
+
+            foreach (DocumentSnapshot doc in turmasSnapshot.Documents)
+                todasTurmas.Add(doc.Id);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao carregar dados: " + e.Message);
+        }
     }
 
     private void MostrarResumo()
     {
-        List<PlayerData> jogadores = database.players.FindAll(p => p.mission1Score >= 0);
+        List<PlayerData> jogadores = todosJogadores.FindAll(p => p.mission1Score >= 0);
         int total = jogadores.Count;
-
         float media = 0;
+
         if (total > 0)
         {
             int soma = 0;
@@ -94,7 +113,7 @@ public class AdminManager : MonoBehaviour
         foreach (Transform filho in alunosContainer)
             Destroy(filho.gameObject);
 
-        List<PlayerData> jogadores = database.players.FindAll(p => p.mission1Score >= 0);
+        List<PlayerData> jogadores = todosJogadores.FindAll(p => p.mission1Score >= 0);
         jogadores.Sort((a, b) => b.mission1Score.CompareTo(a.mission1Score));
 
         foreach (PlayerData jogador in jogadores)
@@ -121,9 +140,9 @@ public class AdminManager : MonoBehaviour
         painelGrafico.SetActive(true);
         painelTurmas.SetActive(false);
 
-        List<PlayerData> jogadores = database.players.FindAll(p => p.mission1Score >= 0);
+        List<PlayerData> jogadores = todosJogadores.FindAll(p => p.mission1Score >= 0);
         int totalCompletaram = jogadores.Count;
-        int totalCadastrados = database.players.Count;
+        int totalCadastrados = todosJogadores.Count;
 
         if (totalCadastradosText != null)
             totalCadastradosText.text = "Total cadastrados: " + totalCadastrados;
@@ -146,7 +165,7 @@ public class AdminManager : MonoBehaviour
         }
 
         RectTransform painelRect = painelGrafico.GetComponent<RectTransform>();
-        float alturaMaxima = painelRect.rect.height * 0.55f; // 55% da altura do painel para as barras
+        float alturaMaxima = painelRect.rect.height * 0.55f;
 
         for (int i = 0; i < 5; i++)
         {
@@ -181,7 +200,7 @@ public class AdminManager : MonoBehaviour
         foreach (Transform filho in turmasContainer)
             Destroy(filho.gameObject);
 
-        foreach (string turma in database.turmas)
+        foreach (string turma in todasTurmas)
         {
             GameObject item = Instantiate(turmaItemPrefab, turmasContainer);
             item.transform.Find("NomeTurmaText").GetComponent<TMP_Text>().text = turma;
@@ -202,36 +221,59 @@ public class AdminManager : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(turmasContainer.GetComponent<RectTransform>());
     }
 
-    public void OnCriarTurmaClicked()
+    public async void OnCriarTurmaClicked()
     {
         string nomeTurma = novaTurmaInput.text.Trim();
         if (string.IsNullOrEmpty(nomeTurma)) return;
 
-        if (database.turmas.Contains(nomeTurma))
+        if (todasTurmas.Contains(nomeTurma))
         {
             Debug.Log("Turma já existe!");
             return;
         }
 
-        database.turmas.Add(nomeTurma);
-        SaveDatabase();
-        novaTurmaInput.text = "";
-        AtualizarListaTurmas();
+        try
+        {
+            await FirebaseManager.Db
+                .Collection("turmas")
+                .Document(nomeTurma)
+                .SetAsync(new Dictionary<string, object> { { "nome", nomeTurma } });
+
+            todasTurmas.Add(nomeTurma);
+            novaTurmaInput.text = "";
+            AtualizarListaTurmas();
+            Debug.Log("Turma criada no Firestore: " + nomeTurma);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao criar turma: " + e.Message);
+        }
     }
 
-    private void DeletarTurma(string nomeTurma)
+    private async void DeletarTurma(string nomeTurma)
     {
-        database.turmas.Remove(nomeTurma);
-        SaveDatabase();
-        AtualizarListaTurmas();
-
-        if (turmaAtualText != null && turmaSelecionada == nomeTurma)
+        try
         {
-            turmaSelecionada = "";
-            turmaAtualText.text = "";
+            await FirebaseManager.Db
+                .Collection("turmas")
+                .Document(nomeTurma)
+                .DeleteAsync();
 
-            foreach (Transform filho in rankingTurmaContainer)
-                Destroy(filho.gameObject);
+            todasTurmas.Remove(nomeTurma);
+            AtualizarListaTurmas();
+
+            if (turmaSelecionada == nomeTurma)
+            {
+                turmaSelecionada = "";
+                if (turmaAtualText != null) turmaAtualText.text = "";
+                foreach (Transform filho in rankingTurmaContainer)
+                    Destroy(filho.gameObject);
+            }
+            Debug.Log("Turma deletada: " + nomeTurma);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao deletar turma: " + e.Message);
         }
     }
 
@@ -245,7 +287,7 @@ public class AdminManager : MonoBehaviour
         foreach (Transform filho in rankingTurmaContainer)
             Destroy(filho.gameObject);
 
-        List<PlayerData> jogadores = database.players.FindAll(p => p.turma == nomeTurma && p.mission1Score >= 0);
+        List<PlayerData> jogadores = todosJogadores.FindAll(p => p.turma == nomeTurma && p.mission1Score >= 0);
         jogadores.Sort((a, b) =>
         {
             if (b.mission1Score != a.mission1Score)
@@ -269,17 +311,36 @@ public class AdminManager : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(rankingTurmaContainer.GetComponent<RectTransform>());
     }
 
-    private void ResetarAluno(string playerName)
+    private async void ResetarAluno(string playerName)
     {
-        PlayerData player = database.players.Find(p => p.playerName == playerName);
-        if (player != null)
+        try
         {
-            player.mission1Score = -1;
-            player.maxCombo = 0;
-            player.mission1Answers = new List<bool>();
-            player.mission1ChosenAnswers = new List<int>();
-            SaveDatabase();
+            await FirebaseManager.Db
+                .Collection("players")
+                .Document(playerName)
+                .UpdateAsync(new Dictionary<string, object>
+                {
+                    { "mission1Score", -1 },
+                    { "maxCombo", 0 },
+                    { "mission1Answers", new List<bool>() },
+                    { "mission1ChosenAnswers", new List<int>() }
+                });
+
+            PlayerData player = todosJogadores.Find(p => p.playerName == playerName);
+            if (player != null)
+            {
+                player.mission1Score = -1;
+                player.maxCombo = 0;
+                player.mission1Answers = new List<bool>();
+                player.mission1ChosenAnswers = new List<int>();
+            }
+
             MostrarPainelAlunos();
+            Debug.Log("Aluno resetado: " + playerName);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao resetar aluno: " + e.Message);
         }
     }
 

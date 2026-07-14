@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using System.IO;
 using System.Collections.Generic;
-using UnityEngine.UI;
+using Firebase.Firestore;
+using System.Threading.Tasks;
 
 [System.Serializable]
 public class PlayerData
@@ -29,71 +29,70 @@ public class LoginManager : MonoBehaviour
     [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private TMP_Dropdown turmaDropdown;
 
-    private string savePath;
-    private PlayerDatabase database;
+    private List<string> turmas = new List<string>();
 
-    private void Start()
+    private async void Start()
     {
-        savePath = Path.Combine(Application.persistentDataPath, "players.json");
-        LoadDatabase();
-        CarregarTurmasNoDropdown();
+        await WaitForFirebase();
+        await CarregarTurmasDoFirestore();
     }
 
-    private void LoadDatabase()
+    private async Task WaitForFirebase()
     {
-        if (File.Exists(savePath))
-        {
-            string json = File.ReadAllText(savePath);
-            database = JsonUtility.FromJson<PlayerDatabase>(json);
-        }
-        else
-        {
-            database = new PlayerDatabase();
-        }
+        while (!FirebaseManager.IsReady)
+            await Task.Delay(100);
     }
 
-    private void CarregarTurmasNoDropdown()
-    {
-        turmaDropdown.ClearOptions();
+    private async Task CarregarTurmasDoFirestore()
+{
+    turmaDropdown.ClearOptions();
+    turmas.Clear();
 
-        if (database.turmas == null || database.turmas.Count == 0)
+    try
+    {
+        Debug.Log("Tentando carregar turmas...");
+        
+        QuerySnapshot snapshot = await FirebaseManager.Db
+            .Collection("turmas")
+            .GetSnapshotAsync();
+
+        Debug.Log("Turmas encontradas: " + snapshot.Count);
+
+        foreach (DocumentSnapshot doc in snapshot.Documents)
+        {
+            Debug.Log("Turma: " + doc.Id);
+            turmas.Add(doc.Id);
+        }
+
+        if (turmas.Count == 0)
         {
             turmaDropdown.AddOptions(new List<string> { "Nenhuma turma cadastrada" });
             turmaDropdown.interactable = false;
-            return;
         }
-
-        turmaDropdown.interactable = true;
-        turmaDropdown.AddOptions(new List<string>(database.turmas));
+        else
+        {
+            turmaDropdown.interactable = true;
+            turmaDropdown.AddOptions(new List<string>(turmas));
+        }
     }
-
-    public void SaveDatabase()
+    catch (System.Exception e)
     {
-        try
-        {
-            string json = JsonUtility.ToJson(database, true);
-            File.WriteAllText(savePath, json);
-            Debug.Log("Database salvo em: " + savePath);
-            Debug.Log("Conteudo: " + json);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError("Erro ao salvar database: " + e.Message);
-        }
+        Debug.LogError("Erro ao carregar turmas: " + e.Message);
     }
+}
 
-    public void OnLoginButtonClicked()
+    public async void OnLoginButtonClicked()
     {
         string input = emailInputField.text != null ? emailInputField.text.Trim() : "";
 
         if (string.IsNullOrEmpty(input))
         {
-            feedbackText.text = "Por favor, digite seu nome ou email.";
+            feedbackText.text = "Por favor, digite seu nome.";
             feedbackText.gameObject.SetActive(true);
             return;
         }
 
-        if (database.turmas == null || database.turmas.Count == 0)
+        if (turmas == null || turmas.Count == 0)
         {
             feedbackText.text = "Nenhuma turma cadastrada. Peça ao professor para criar uma turma.";
             feedbackText.gameObject.SetActive(true);
@@ -102,21 +101,39 @@ public class LoginManager : MonoBehaviour
 
         feedbackText.gameObject.SetActive(false);
 
-        string turmaSelecionada = database.turmas[turmaDropdown.value];
+        string turmaSelecionada = turmas[turmaDropdown.value];
 
         PlayerPrefs.SetString("CurrentPlayer", input);
         PlayerPrefs.SetString("CurrentTurma", turmaSelecionada);
         PlayerPrefs.Save();
 
-        PlayerData player = database.players.Find(p => p.playerName == input && p.turma == turmaSelecionada);
-        if (player == null)
+        try
         {
-            player = new PlayerData { playerName = input, turma = turmaSelecionada };
-            database.players.Add(player);
-            SaveDatabase();
-        }
+            DocumentReference docRef = FirebaseManager.Db
+                .Collection("players")
+                .Document(input);
 
-        SceneManager.LoadScene(1);
+            DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+
+            if (!snapshot.Exists)
+            {
+                await docRef.SetAsync(new Dictionary<string, object>
+                {
+                    { "playerName", input },
+                    { "turma", turmaSelecionada },
+                    { "mission1Score", -1 },
+                    { "maxCombo", 0 },
+                    { "mission1Answers", new List<bool>() },
+                    { "mission1ChosenAnswers", new List<int>() }
+                });
+            }
+
+            SceneManager.LoadScene(1);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Erro ao fazer login: " + e.Message);
+        }
     }
 
     public void OnProfessorButtonClicked()

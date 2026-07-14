@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "188001177333",
+    "project_id": "modelneedsar",
+    "storage_bucket": "modelneedsar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:188001177333:android:540013c8f2c3f488c37fbc",
+        "android_client_info": {
+          "package_name": "com.GiihBonilha.ModelNeedsAR"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7ihj2cs2UhfsOJZSh1dPcD_AaAQb5h4U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
