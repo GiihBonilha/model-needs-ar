@@ -1,4 +1,4 @@
-# ModelNeedsAR 🥽📚
+# RE4AI-AR 🥽📚
 
 An Augmented Reality educational Android application built with Unity, designed to support the teaching of **Model Needs** elicitation in Requirements Engineering for AI systems (RE4AI). Students interact with AR-based missions — placing 3D characters and objects on a real surface via the device camera — answering scenario-based questions whose outcomes feed into a final decision-tree feedback.
 
@@ -41,13 +41,13 @@ This repository is the artifact companion to the paper:
 The app persists student progress (login, scores, ranking) in a **Firebase Firestore** database. The repository ships with the authors' own `google-services.json`, but if you want to run your own independent instance (recommended for evaluators, to avoid writing test data into the authors' database), create your own Firebase project by following these steps:
 
 1. Go to [firebase.google.com](https://firebase.google.com) and sign in with a Google account.
-2. Click **"Add project"**, name it (e.g. `ModelNeedsAR`), and click **Continue**. You can leave Google Analytics **disabled** — it is not needed. Click **Create project**.
+2. Click **"Add project"**, name it (e.g. `RE4AI-AR`), and click **Continue**. You can leave Google Analytics **disabled** — it is not needed. Click **Create project**.
 3. In the left sidebar, click **Firestore Database → Create database**.
 4. Choose **Start in test mode** for a quick setup (open read/write for 30 days), select a region (e.g. `us-east1`), and click **Enable**.
    - ⚠️ Before using the app beyond local testing, replace the test-mode rules with production rules (see **Notes for evaluators** below) so the database isn't left publicly writable.
 5. Back on the project's home page, click the **Android icon** to register a new app.
 6. In **Android package name**, enter exactly: `com.GiihBonilha.ModelNeedsAR`
-7. (Optional) Give it a nickname, e.g. `ModelNeedsAR`, then click **Register app**.
+7. (Optional) Give it a nickname, e.g. `RE4AI-AR`, then click **Register app**.
 8. Download the generated **`google-services.json`** file and replace the one at `Assets/google-services.json` in the cloned project.
 9. Back in Firebase, finish the wizard (you can skip the SDK-add steps, since the Firebase Unity SDK is already integrated in this project) and click **Continue to console**.
 10. Re-open (or re-import) the project in Unity so it picks up the new configuration file.
